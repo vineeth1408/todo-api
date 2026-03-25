@@ -1,0 +1,83 @@
+name: Java CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17 (Temurin) with Maven cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build project (Maven package)
+        run: mvn -B -DskipTests clean package
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17 (Temurin) with Maven cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run unit tests
+        run: mvn -B test
+
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17 (Temurin) with Maven cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run Maven verify
+        run: mvn -B -DskipTests verify
+
+  report:
+    name: Report pass/fail
+    runs-on: ubuntu-latest
+    needs: [build, test, verify]
+    if: always()
+    steps:
+      - name: Pipeline passed
+        if: ${{ needs.build.result == 'success' && needs.test.result == 'success' && needs.verify.result == 'success' }}
+        run: echo "CI pipeline PASSED"
+
+      - name: Pipeline failed
+        if: ${{ needs.build.result != 'success' || needs.test.result != 'success' || needs.verify.result != 'success' }}
+        run: |
+          echo "CI pipeline FAILED"
+          exit 1
