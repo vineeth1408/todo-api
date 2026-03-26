@@ -158,11 +158,7 @@ public class TodoControllerTest {
         doNothing().when(todoService).delete(1L);
 
         mockMvc.perform(delete("/api/todos/1"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("Todo deleted successfully"))
-                .andExpect(jsonPath("$.data").isEmpty());
+                .andExpect(status().isNoContent());
     }
 
     @Test
